@@ -12,6 +12,7 @@ import (
 
 	"github.com/rakutentech/jwk-go/jwk"
 	"github.com/rs/zerolog"
+	"golang.org/x/sync/singleflight"
 )
 
 const (
@@ -47,6 +48,7 @@ type manager struct {
 	lookup  bool
 	retries int
 	logger  zerolog.Logger
+	group   singleflight.Group
 }
 
 // NewManager returns a new instance of `Manager`.
@@ -95,6 +97,17 @@ func (m *manager) FetchKey(ctx context.Context, kid string) (*JWK, error) {
 	}
 
 	// Otherwise fetch from public JWKS.
+	v, err, _ := m.group.Do(kid, func() (interface{}, error) {
+		return m.fetchKey(ctx, kid)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return v.(*JWK), nil
+}
+
+func (m *manager) fetchKey(ctx context.Context, kid string) (*JWK, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, m.url.String(), nil)
 	if err != nil {
 		return nil, err
