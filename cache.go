@@ -8,11 +8,15 @@ import (
 )
 
 var (
-	ErrEmptyKeyID    = errors.New("cache: empty kid")
+	// ErrEmptyKeyID raises when input kid is empty.
+	ErrEmptyKeyID = errors.New("cache: empty kid")
+	// ErrCacheNotFound raises when cache value not found.
 	ErrCacheNotFound = errors.New("cache: value not found")
-	ErrInvalidValue  = errors.New("cache: invalid value")
+	// ErrInvalidValue raises when type conversion to JWK has been failed.
+	ErrInvalidValue = errors.New("cache: invalid value")
 )
 
+// Cache works with cache layer.
 type Cache interface {
 	Add(ctx context.Context, key *JWK) error
 	Get(ctx context.Context, kid string) (*JWK, error)
@@ -24,6 +28,7 @@ type Cache interface {
 
 type memory struct{ cache *lru.Cache }
 
+// NewMemoryCache returns a new instance of memory cache.
 func NewMemoryCache(size int) (Cache, error) {
 	cache, err := lru.New(size)
 	if err != nil {

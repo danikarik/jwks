@@ -18,15 +18,21 @@ const (
 	_defaultCacheSize = 100
 )
 
+// JWK represents an unparsed JSON Web Key (JWK) in its wire format.
 type JWK = jwk.JWK
 
 var (
-	ErrConnectionFailed  = errors.New("jwks: connection failed")
-	ErrInvalidURL        = errors.New("jwks: invalid url value or format")
-	ErrKeyIDNotProvided  = errors.New("jwks: kid is not provided")
+	// ErrConnectionFailed raises when JWKS endpoint cannot be reached.
+	ErrConnectionFailed = errors.New("jwks: connection failed")
+	// ErrInvalidURL raises when input url has invalid format.
+	ErrInvalidURL = errors.New("jwks: invalid url value or format")
+	// ErrKeyIDNotProvided raises when input kid is not present.
+	ErrKeyIDNotProvided = errors.New("jwks: kid is not provided")
+	// ErrPublicKeyNotFound raises when no public key is found.
 	ErrPublicKeyNotFound = errors.New("jwks: public key not found")
 )
 
+// Manager fetches and returns JWK from public source.
 type Manager interface {
 	FetchKey(ctx context.Context, kid string) (*JWK, error)
 	CacheSize(ctx context.Context) (int, error)
@@ -41,6 +47,7 @@ type manager struct {
 	logger  zerolog.Logger
 }
 
+// NewManager returns a new instance of `Manager`.
 func NewManager(rawurl string, opts ...Option) (Manager, error) {
 	url, err := url.Parse(rawurl)
 	if err != nil {
