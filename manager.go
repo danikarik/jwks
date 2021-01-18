@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/rakutentech/jwk-go/jwk"
 	"github.com/rs/zerolog"
@@ -16,6 +17,7 @@ import (
 const (
 	_defaultRetries   = 5
 	_defaultCacheSize = 100
+	_defaultTimeout   = 5 * time.Second
 )
 
 // JWK represents an unparsed JSON Web Key (JWK) in its wire format.
@@ -54,7 +56,7 @@ func NewManager(rawurl string, opts ...Option) (Manager, error) {
 		return nil, ErrInvalidURL
 	}
 
-	cache, _ := NewMemoryCache(_defaultCacheSize)
+	cache, _ := NewLRUCache(_defaultCacheSize)
 
 	logger := zerolog.
 		New(os.Stderr).With().
@@ -64,7 +66,7 @@ func NewManager(rawurl string, opts ...Option) (Manager, error) {
 	mng := &manager{
 		url:     url,
 		cache:   cache,
-		client:  &http.Client{},
+		client:  &http.Client{Timeout: _defaultTimeout},
 		lookup:  true,
 		retries: _defaultRetries,
 		logger:  logger,

@@ -28,7 +28,7 @@ func TestMemoryCacheInit(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			cache, err := jwks.NewMemoryCache(tc.Size)
+			cache, err := jwks.NewLRUCache(tc.Size)
 			if tc.WantError {
 				require.Error(t, err)
 			} else {
@@ -61,7 +61,7 @@ func TestMemoryCacheAdd(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			ctx := context.Background()
 
-			cache, err := jwks.NewMemoryCache(tc.Size)
+			cache, err := jwks.NewLRUCache(tc.Size)
 			require.NoError(t, err)
 
 			for i := 0; i < tc.Ops; i++ {
@@ -110,7 +110,7 @@ func TestMemoryCacheGet(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			ctx := context.Background()
 
-			cache, err := jwks.NewMemoryCache(10)
+			cache, err := jwks.NewLRUCache(10)
 			require.NoError(t, err)
 			require.NoError(t, cache.Add(ctx, tc.Key))
 
@@ -161,7 +161,7 @@ func TestMemoryCacheRemove(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			ctx := context.Background()
 
-			cache, err := jwks.NewMemoryCache(tc.Size)
+			cache, err := jwks.NewLRUCache(tc.Size)
 			require.NoError(t, err)
 
 			for i := 0; i < tc.Adds; i++ {
@@ -226,7 +226,7 @@ func TestMemoryCacheContains(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			ctx := context.Background()
 
-			cache, err := jwks.NewMemoryCache(10)
+			cache, err := jwks.NewLRUCache(10)
 			require.NoError(t, err)
 			require.NoError(t, cache.Add(ctx, tc.Key))
 
@@ -263,7 +263,7 @@ func TestMemoryCacheLen(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			ctx := context.Background()
 
-			cache, err := jwks.NewMemoryCache(tc.Size)
+			cache, err := jwks.NewLRUCache(tc.Size)
 			require.NoError(t, err)
 
 			for i := 0; i < tc.Ops; i++ {
@@ -304,7 +304,7 @@ func TestMemoryCachePurge(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			ctx := context.Background()
 
-			cache, err := jwks.NewMemoryCache(tc.Size)
+			cache, err := jwks.NewLRUCache(tc.Size)
 			require.NoError(t, err)
 
 			for i := 0; i < tc.Ops; i++ {
