@@ -7,11 +7,16 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 
 	"github.com/rakutentech/jwk-go/jwk"
+	"github.com/rs/zerolog"
 )
 
-const defaultRetries = 5
+const (
+	_defaultRetries   = 5
+	_defaultCacheSize = 100
+)
 
 type JWK = jwk.JWK
 
@@ -21,24 +26,6 @@ var (
 	ErrKeyIDNotProvided  = errors.New("jwks: kid is not provided")
 	ErrPublicKeyNotFound = errors.New("jwks: public key not found")
 )
-
-type Config struct {
-	Cache   Cache
-	Client  *http.Client
-	Lookup  bool
-	Retries int
-}
-
-func defaultConfig() *Config {
-	cache, _ := NewMemoryCache(defaultCacheSize)
-
-	return &Config{
-		Cache:   cache,
-		Client:  &http.Client{},
-		Lookup:  true,
-		Retries: defaultRetries,
-	}
-}
 
 type Manager interface {
 	FetchKey(ctx context.Context, kid string) (*JWK, error)
@@ -51,33 +38,36 @@ type manager struct {
 	client  *http.Client
 	lookup  bool
 	retries int
+	logger  zerolog.Logger
 }
 
-func NewManager(rawurl string, conf *Config) (Manager, error) {
+func NewManager(rawurl string, opts ...Option) (Manager, error) {
 	url, err := url.Parse(rawurl)
 	if err != nil {
 		return nil, ErrInvalidURL
 	}
 
-	if conf == nil {
-		conf = defaultConfig()
-	}
+	cache, _ := NewMemoryCache(_defaultCacheSize)
 
-	if conf.Client == nil {
-		conf.Client = &http.Client{}
-	}
+	logger := zerolog.
+		New(os.Stderr).With().
+		Logger().
+		Level(zerolog.DebugLevel)
 
-	if conf.Retries == 0 {
-		conf.Retries = defaultRetries
-	}
-
-	return &manager{
+	mng := &manager{
 		url:     url,
-		cache:   conf.Cache,
-		client:  conf.Client,
-		lookup:  conf.Lookup,
-		retries: conf.Retries,
-	}, nil
+		cache:   cache,
+		client:  &http.Client{},
+		lookup:  true,
+		retries: _defaultRetries,
+		logger:  logger,
+	}
+
+	for _, opt := range opts {
+		opt(mng)
+	}
+
+	return mng, nil
 }
 
 func (m *manager) FetchKey(ctx context.Context, kid string) (*JWK, error) {

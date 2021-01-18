@@ -49,13 +49,13 @@ func jwksHandler(keys ...testKey) http.Handler {
 }
 
 func TestManagerInit(t *testing.T) {
-	manager, err := jwks.NewManager("https:example.com/.well-known/jwks.json", nil)
+	manager, err := jwks.NewManager("https:example.com/.well-known/jwks.json")
 	require.NoError(t, err)
 	require.NotNil(t, manager)
 }
 
 func TestManagerFailedFetchKey(t *testing.T) {
-	manager, err := jwks.NewManager("https:example.com/.well-known/jwks.json", nil)
+	manager, err := jwks.NewManager("https:example.com/.well-known/jwks.json")
 	require.NoError(t, err)
 
 	_, err = manager.FetchKey(context.Background(), "202101")
@@ -92,7 +92,7 @@ func TestManagerInitialFetchKey(t *testing.T) {
 			ts := httptest.NewServer(tc.Handler)
 			defer ts.Close()
 
-			manager, err := jwks.NewManager(ts.URL, nil)
+			manager, err := jwks.NewManager(ts.URL)
 			r.NoError(err)
 
 			key, err := manager.FetchKey(context.Background(), tc.Kid)
@@ -108,11 +108,9 @@ func TestManagerInitialFetchKey(t *testing.T) {
 }
 
 func TestManagerCachedFetchKey(t *testing.T) {
-	cache, _ := jwks.NewMemoryCache(10)
-
 	testCases := []struct {
 		Name         string
-		Config       *jwks.Config
+		Options      []jwks.Option
 		ExpectedSize int
 	}{
 		{
@@ -121,7 +119,7 @@ func TestManagerCachedFetchKey(t *testing.T) {
 		},
 		{
 			Name:         "NoLookup",
-			Config:       &jwks.Config{Cache: cache, Lookup: false},
+			Options:      []jwks.Option{jwks.WithLookup(false)},
 			ExpectedSize: 0,
 		},
 	}
@@ -139,7 +137,7 @@ func TestManagerCachedFetchKey(t *testing.T) {
 			ts := httptest.NewServer(jwksHandler(testKey{kid, pubKey}))
 			defer ts.Close()
 
-			manager, err := jwks.NewManager(ts.URL, tc.Config)
+			manager, err := jwks.NewManager(ts.URL, tc.Options...)
 			r.NoError(err)
 
 			key, err := manager.FetchKey(ctx, kid)

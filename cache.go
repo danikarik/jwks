@@ -7,8 +7,6 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 )
 
-const defaultCacheSize = 100
-
 var (
 	ErrEmptyKeyID    = errors.New("cache: empty kid")
 	ErrCacheNotFound = errors.New("cache: value not found")
