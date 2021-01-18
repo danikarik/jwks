@@ -4,56 +4,27 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/danikarik/jwks"
 	"github.com/stretchr/testify/require"
 )
 
-func TestLRUCacheInit(t *testing.T) {
-	testCases := []struct {
-		Name      string
-		Size      int
-		WantError bool
-	}{
-		{
-			Name: "OK",
-			Size: 100,
-		},
-		{
-			Name:      "NegativeSize",
-			Size:      -1,
-			WantError: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.Name, func(t *testing.T) {
-			cache, err := jwks.NewLRUCache(tc.Size)
-			if tc.WantError {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				require.NotNil(t, cache)
-			}
-		})
-	}
+func TestTTLCacheInit(t *testing.T) {
+	cache := jwks.NewTTLCache(5 * time.Minute)
+	require.NotNil(t, cache)
 }
 
-func TestLRUCacheAdd(t *testing.T) {
+func TestTTLCacheAdd(t *testing.T) {
 	testCases := []struct {
 		Name string
-		Size int
+		TTL  time.Duration
 		Ops  int
 	}{
 		{
 			Name: "OK",
-			Size: 100,
-			Ops:  50,
-		},
-		{
-			Name: "Evicted",
-			Size: 100,
-			Ops:  200,
+			TTL:  5 * time.Second,
+			Ops:  100,
 		},
 	}
 
@@ -61,8 +32,8 @@ func TestLRUCacheAdd(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			ctx := context.Background()
 
-			cache, err := jwks.NewLRUCache(tc.Size)
-			require.NoError(t, err)
+			cache := jwks.NewTTLCache(tc.TTL)
+			require.NotNil(t, cache)
 
 			for i := 0; i < tc.Ops; i++ {
 				require.NoError(t, cache.Add(ctx, &jwks.JWK{
@@ -76,7 +47,7 @@ func TestLRUCacheAdd(t *testing.T) {
 	}
 }
 
-func TestLRUCacheGet(t *testing.T) {
+func TestTTLCacheGet(t *testing.T) {
 	testCases := []struct {
 		Name  string
 		Key   *jwks.JWK
@@ -110,8 +81,8 @@ func TestLRUCacheGet(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			ctx := context.Background()
 
-			cache, err := jwks.NewLRUCache(10)
-			require.NoError(t, err)
+			cache := jwks.NewTTLCache(5 * time.Minute)
+			require.NotNil(t, cache)
 			require.NoError(t, cache.Add(ctx, tc.Key))
 
 			key, err := cache.Get(ctx, tc.Kid)
@@ -126,34 +97,24 @@ func TestLRUCacheGet(t *testing.T) {
 	}
 }
 
-func TestLRUCacheRemove(t *testing.T) {
+func TestTTLCacheRemove(t *testing.T) {
 	testCases := []struct {
 		Name string
-		Size int
 		Adds int
 		Dels int
 		Len  int
 	}{
 		{
 			Name: "OK",
-			Size: 100,
 			Adds: 75,
 			Dels: 50,
 			Len:  25,
 		},
 		{
 			Name: "RemoveUntilEmpty",
-			Size: 100,
 			Adds: 75,
 			Dels: 100,
 			Len:  0,
-		},
-		{
-			Name: "RemoveWithEviction",
-			Size: 100,
-			Adds: 200,
-			Dels: 50,
-			Len:  50,
 		},
 	}
 
@@ -161,8 +122,8 @@ func TestLRUCacheRemove(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			ctx := context.Background()
 
-			cache, err := jwks.NewLRUCache(tc.Size)
-			require.NoError(t, err)
+			cache := jwks.NewTTLCache(5 * time.Minute)
+			require.NotNil(t, cache)
 
 			for i := 0; i < tc.Adds; i++ {
 				require.NoError(t, cache.Add(ctx, &jwks.JWK{
@@ -175,12 +136,6 @@ func TestLRUCacheRemove(t *testing.T) {
 
 			for i := 0; i < tc.Dels; i++ {
 				kid := fmt.Sprintf("key-%d", i+1)
-
-				// if eviction occured
-				if tc.Adds > tc.Size {
-					kid = fmt.Sprintf("key-%d", i+1+tc.Size)
-				}
-
 				require.NoError(t, cache.Remove(ctx, kid))
 			}
 
@@ -191,7 +146,7 @@ func TestLRUCacheRemove(t *testing.T) {
 	}
 }
 
-func TestLRUCacheContains(t *testing.T) {
+func TestTTLCacheContains(t *testing.T) {
 	testCases := []struct {
 		Name  string
 		Key   *jwks.JWK
@@ -226,8 +181,8 @@ func TestLRUCacheContains(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			ctx := context.Background()
 
-			cache, err := jwks.NewLRUCache(10)
-			require.NoError(t, err)
+			cache := jwks.NewTTLCache(5 * time.Minute)
+			require.NotNil(t, cache)
 			require.NoError(t, cache.Add(ctx, tc.Key))
 
 			found, err := cache.Contains(ctx, tc.Kid)
@@ -238,24 +193,16 @@ func TestLRUCacheContains(t *testing.T) {
 	}
 }
 
-func TestLRUCacheLen(t *testing.T) {
+func TestTTLCacheLen(t *testing.T) {
 	testCases := []struct {
 		Name string
-		Size int
 		Ops  int
 		Len  int
 	}{
 		{
 			Name: "OK",
-			Size: 100,
 			Ops:  50,
 			Len:  50,
-		},
-		{
-			Name: "Evicted",
-			Size: 100,
-			Ops:  200,
-			Len:  100,
 		},
 	}
 
@@ -263,8 +210,8 @@ func TestLRUCacheLen(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			ctx := context.Background()
 
-			cache, err := jwks.NewLRUCache(tc.Size)
-			require.NoError(t, err)
+			cache := jwks.NewTTLCache(5 * time.Second)
+			require.NotNil(t, cache)
 
 			for i := 0; i < tc.Ops; i++ {
 				require.NoError(t, cache.Add(ctx, &jwks.JWK{
@@ -282,21 +229,14 @@ func TestLRUCacheLen(t *testing.T) {
 	}
 }
 
-func TestLRUCachePurge(t *testing.T) {
+func TestTTLCachePurge(t *testing.T) {
 	testCases := []struct {
 		Name string
-		Size int
 		Ops  int
 	}{
 		{
 			Name: "OK",
-			Size: 100,
 			Ops:  50,
-		},
-		{
-			Name: "Evicted",
-			Size: 100,
-			Ops:  200,
 		},
 	}
 
@@ -304,8 +244,8 @@ func TestLRUCachePurge(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			ctx := context.Background()
 
-			cache, err := jwks.NewLRUCache(tc.Size)
-			require.NoError(t, err)
+			cache := jwks.NewTTLCache(5 * time.Second)
+			require.NotNil(t, cache)
 
 			for i := 0; i < tc.Ops; i++ {
 				require.NoError(t, cache.Add(ctx, &jwks.JWK{
@@ -323,4 +263,24 @@ func TestLRUCachePurge(t *testing.T) {
 			require.Equal(t, 0, n)
 		})
 	}
+}
+
+func TestTTLCacheCleanup(t *testing.T) {
+	ctx := context.Background()
+	cache := jwks.NewTTLCache(1 * time.Millisecond)
+
+	for i := 0; i < 10; i++ {
+		require.NoError(t, cache.Add(ctx, &jwks.JWK{
+			Kid: fmt.Sprintf("key-%d", i+1),
+			Kty: "RSA",
+			Alg: "RS256",
+			Use: "sig",
+		}))
+	}
+
+	time.Sleep(2 * time.Second)
+
+	n, err := cache.Len(ctx)
+	require.NoError(t, err)
+	require.Equal(t, 0, n)
 }

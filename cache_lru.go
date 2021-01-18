@@ -6,29 +6,29 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 )
 
-type lruMemory struct{ cache *lru.Cache }
+type lrucache struct{ cache *lru.Cache }
 
-// NewLRUCache returns a new instance of memory cache.
+// NewLRUCache returns a new instance of lru cache.
 func NewLRUCache(size int) (Cache, error) {
 	cache, err := lru.New(size)
 	if err != nil {
 		return nil, err
 	}
 
-	return &lruMemory{cache}, nil
+	return &lrucache{cache}, nil
 }
 
-func (m *lruMemory) Add(_ context.Context, key *JWK) error {
+func (lc *lrucache) Add(_ context.Context, key *JWK) error {
 	if key.Kid == "" {
 		return ErrEmptyKeyID
 	}
 
-	m.cache.Add(key.Kid, key)
+	lc.cache.Add(key.Kid, key)
 	return nil
 }
 
-func (m *lruMemory) Get(_ context.Context, kid string) (*JWK, error) {
-	v, found := m.cache.Get(kid)
+func (lc *lrucache) Get(_ context.Context, kid string) (*JWK, error) {
+	v, found := lc.cache.Get(kid)
 	if !found {
 		return nil, ErrCacheNotFound
 	}
@@ -41,20 +41,20 @@ func (m *lruMemory) Get(_ context.Context, kid string) (*JWK, error) {
 	return key, nil
 }
 
-func (m *lruMemory) Remove(_ context.Context, kid string) error {
-	m.cache.Remove(kid)
+func (lc *lrucache) Remove(_ context.Context, kid string) error {
+	lc.cache.Remove(kid)
 	return nil
 }
 
-func (m *lruMemory) Contains(_ context.Context, kid string) (bool, error) {
-	return m.cache.Contains(kid), nil
+func (lc *lrucache) Contains(_ context.Context, kid string) (bool, error) {
+	return lc.cache.Contains(kid), nil
 }
 
-func (m *lruMemory) Len(_ context.Context) (int, error) {
-	return m.cache.Len(), nil
+func (lc *lrucache) Len(_ context.Context) (int, error) {
+	return lc.cache.Len(), nil
 }
 
-func (m *lruMemory) Purge(_ context.Context) error {
-	m.cache.Purge()
+func (lc *lrucache) Purge(_ context.Context) error {
+	lc.cache.Purge()
 	return nil
 }
