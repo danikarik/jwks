@@ -52,7 +52,7 @@ func NewManager(rawurl string, opts ...Option) (Manager, error) {
 	logger := zerolog.
 		New(os.Stderr).With().
 		Logger().
-		Level(zerolog.DebugLevel)
+		Level(zerolog.Disabled)
 
 	mng := &manager{
 		url:     url,
@@ -77,6 +77,8 @@ func (m *manager) FetchKey(ctx context.Context, kid string) (*JWK, error) {
 
 	// If lookup is true, first try to get key from cache.
 	if m.lookup {
+		m.logger.Debug().Msgf("lookup cache for %s", kid)
+
 		key, err := m.cache.Get(ctx, kid)
 		if err == nil {
 			return key, nil
@@ -96,22 +98,27 @@ func (m *manager) FetchKey(ctx context.Context, kid string) (*JWK, error) {
 	for retries > 0 {
 		retries--
 
+		m.logger.Debug().Msgf("fetching %s from jwks source", kid)
 		resp, err := m.client.Do(req)
 		if err != nil {
+			m.logger.Debug().Msgf("request failed with error %v", err)
 			continue
 		}
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
+			m.logger.Debug().Msgf("request failed with %d status code", resp.StatusCode)
 			continue
 		}
 
 		data, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
+			m.logger.Debug().Msgf("response body reading failed with %v", err)
 			continue
 		}
 
 		if err := json.Unmarshal(data, &set); err != nil {
+			m.logger.Debug().Msgf("response body encoding failed with %v", err)
 			return nil, err
 		}
 
@@ -119,10 +126,12 @@ func (m *manager) FetchKey(ctx context.Context, kid string) (*JWK, error) {
 	}
 
 	if retries == 0 {
+		m.logger.Debug().Msgf("max retries exceeded for %s", m.url.String())
 		return nil, ErrConnectionFailed
 	}
 
 	if len(set.Keys) == 0 {
+		m.logger.Debug().Msg("JWKS has no keys")
 		return nil, ErrPublicKeyNotFound
 	}
 
@@ -136,7 +145,10 @@ func (m *manager) FetchKey(ctx context.Context, kid string) (*JWK, error) {
 		}
 
 		if m.lookup {
+			m.logger.Debug().Msgf("saving %s into cache", jwk.Kid)
+
 			if err := m.cache.Add(ctx, jwk); err != nil {
+				m.logger.Debug().Msgf("failed cache save for %s with %v", jwk.Kid, err)
 				return nil, err
 			}
 		}

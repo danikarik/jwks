@@ -27,3 +27,7 @@ func WithMaxRetries(n int) Option {
 func WithLogger(logger zerolog.Logger) Option {
 	return func(m *manager) { m.logger = logger }
 }
+
+func WithDebug(on bool) Option {
+	return func(m *manager) { m.logger = m.logger.Level(zerolog.DebugLevel) }
+}
