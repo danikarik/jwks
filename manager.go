@@ -41,8 +41,8 @@ func defaultConfig() *Config {
 }
 
 type Manager interface {
-	Fetch(ctx context.Context, kid string) (*JWK, error)
-	Size(ctx context.Context) (int, error)
+	FetchKey(ctx context.Context, kid string) (*JWK, error)
+	CacheSize(ctx context.Context) (int, error)
 }
 
 type manager struct {
@@ -80,7 +80,7 @@ func NewManager(rawurl string, conf *Config) (Manager, error) {
 	}, nil
 }
 
-func (m *manager) Fetch(ctx context.Context, kid string) (*JWK, error) {
+func (m *manager) FetchKey(ctx context.Context, kid string) (*JWK, error) {
 	if kid == "" {
 		return nil, ErrKeyIDNotProvided
 	}
@@ -163,6 +163,6 @@ func (m *manager) Fetch(ctx context.Context, kid string) (*JWK, error) {
 	return res, nil
 }
 
-func (m *manager) Size(ctx context.Context) (int, error) {
+func (m *manager) CacheSize(ctx context.Context) (int, error) {
 	return m.cache.Len(ctx)
 }

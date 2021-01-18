@@ -54,15 +54,15 @@ func TestManagerInit(t *testing.T) {
 	require.NotNil(t, manager)
 }
 
-func TestManagerFailedFetch(t *testing.T) {
+func TestManagerFailedFetchKey(t *testing.T) {
 	manager, err := jwks.NewManager("https:example.com/.well-known/jwks.json", nil)
 	require.NoError(t, err)
 
-	_, err = manager.Fetch(context.Background(), "202101")
+	_, err = manager.FetchKey(context.Background(), "202101")
 	require.ErrorIs(t, err, jwks.ErrConnectionFailed)
 }
 
-func TestManagerInitialFetch(t *testing.T) {
+func TestManagerInitialFetchKey(t *testing.T) {
 	_, pubKey, err := randomKeys()
 	require.NoError(t, err)
 
@@ -95,7 +95,7 @@ func TestManagerInitialFetch(t *testing.T) {
 			manager, err := jwks.NewManager(ts.URL, nil)
 			r.NoError(err)
 
-			key, err := manager.Fetch(context.Background(), tc.Kid)
+			key, err := manager.FetchKey(context.Background(), tc.Kid)
 			if tc.Error != nil {
 				r.Error(err)
 				r.ErrorIs(err, tc.Error)
@@ -107,7 +107,7 @@ func TestManagerInitialFetch(t *testing.T) {
 	}
 }
 
-func TestManagerCachedFetch(t *testing.T) {
+func TestManagerCachedFetchKey(t *testing.T) {
 	cache, _ := jwks.NewMemoryCache(10)
 
 	testCases := []struct {
@@ -142,14 +142,13 @@ func TestManagerCachedFetch(t *testing.T) {
 			manager, err := jwks.NewManager(ts.URL, tc.Config)
 			r.NoError(err)
 
-			key, err := manager.Fetch(ctx, kid)
+			key, err := manager.FetchKey(ctx, kid)
 			r.NoError(err)
 			r.Equal(kid, key.Kid)
 
-			size, err := manager.Size(ctx)
+			size, err := manager.CacheSize(ctx)
 			r.NoError(err)
 			r.Equal(tc.ExpectedSize, size)
 		})
 	}
-
 }
