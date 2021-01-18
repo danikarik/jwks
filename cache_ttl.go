@@ -29,7 +29,7 @@ func (i *item) expired() bool {
 	return res
 }
 
-type ttlcache struct {
+type TTLCache struct {
 	mu    sync.RWMutex
 	ttl   time.Duration
 	stop  chan struct{}
@@ -37,8 +37,8 @@ type ttlcache struct {
 }
 
 // NewTTLCache returns a new instance of ttl cache.
-func NewTTLCache(ttl time.Duration) Cache {
-	cache := &ttlcache{
+func NewTTLCache(ttl time.Duration) *TTLCache {
+	cache := &TTLCache{
 		ttl:   ttl,
 		stop:  make(chan struct{}),
 		items: make(map[string]*item),
@@ -47,7 +47,7 @@ func NewTTLCache(ttl time.Duration) Cache {
 	return cache
 }
 
-func (tc *ttlcache) cleanup() {
+func (tc *TTLCache) cleanup() {
 	tc.mu.Lock()
 	for key, item := range tc.items {
 		if item.expired() {
@@ -57,7 +57,7 @@ func (tc *ttlcache) cleanup() {
 	tc.mu.Unlock()
 }
 
-func (tc *ttlcache) run() {
+func (tc *TTLCache) run() {
 	d := tc.ttl
 	if d < time.Second {
 		d = time.Second
@@ -76,7 +76,7 @@ func (tc *ttlcache) run() {
 	}()
 }
 
-func (tc *ttlcache) Add(_ context.Context, key *JWK) error {
+func (tc *TTLCache) Add(_ context.Context, key *JWK) error {
 	tc.mu.Lock()
 	item := &item{data: key}
 	item.touch(tc.ttl)
@@ -85,7 +85,7 @@ func (tc *ttlcache) Add(_ context.Context, key *JWK) error {
 	return nil
 }
 
-func (tc *ttlcache) Get(_ context.Context, kid string) (*JWK, error) {
+func (tc *TTLCache) Get(_ context.Context, kid string) (*JWK, error) {
 	tc.mu.RLock()
 	item, ok := tc.items[kid]
 	if !ok || item.expired() {
@@ -97,28 +97,28 @@ func (tc *ttlcache) Get(_ context.Context, kid string) (*JWK, error) {
 	return item.data, nil
 }
 
-func (tc *ttlcache) Remove(_ context.Context, kid string) error {
+func (tc *TTLCache) Remove(_ context.Context, kid string) error {
 	tc.mu.Lock()
 	delete(tc.items, kid)
 	tc.mu.Unlock()
 	return nil
 }
 
-func (tc *ttlcache) Contains(_ context.Context, kid string) (bool, error) {
+func (tc *TTLCache) Contains(_ context.Context, kid string) (bool, error) {
 	tc.mu.RLock()
 	_, ok := tc.items[kid]
 	tc.mu.RUnlock()
 	return ok, nil
 }
 
-func (tc *ttlcache) Len(_ context.Context) (int, error) {
+func (tc *TTLCache) Len(_ context.Context) (int, error) {
 	tc.mu.RLock()
 	n := len(tc.items)
 	tc.mu.RUnlock()
 	return n, nil
 }
 
-func (tc *ttlcache) Purge(_ context.Context) error {
+func (tc *TTLCache) Purge(_ context.Context) error {
 	tc.mu.Lock()
 	tc.items = map[string]*item{}
 	tc.mu.Unlock()

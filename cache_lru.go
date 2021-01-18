@@ -6,19 +6,19 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 )
 
-type lrucache struct{ cache *lru.Cache }
+type LRUCache struct{ cache *lru.Cache }
 
 // NewLRUCache returns a new instance of lru cache.
-func NewLRUCache(size int) (Cache, error) {
+func NewLRUCache(size int) (*LRUCache, error) {
 	cache, err := lru.New(size)
 	if err != nil {
 		return nil, err
 	}
 
-	return &lrucache{cache}, nil
+	return &LRUCache{cache}, nil
 }
 
-func (lc *lrucache) Add(_ context.Context, key *JWK) error {
+func (lc *LRUCache) Add(_ context.Context, key *JWK) error {
 	if key.Kid == "" {
 		return ErrEmptyKeyID
 	}
@@ -27,7 +27,7 @@ func (lc *lrucache) Add(_ context.Context, key *JWK) error {
 	return nil
 }
 
-func (lc *lrucache) Get(_ context.Context, kid string) (*JWK, error) {
+func (lc *LRUCache) Get(_ context.Context, kid string) (*JWK, error) {
 	v, found := lc.cache.Get(kid)
 	if !found {
 		return nil, ErrCacheNotFound
@@ -41,20 +41,20 @@ func (lc *lrucache) Get(_ context.Context, kid string) (*JWK, error) {
 	return key, nil
 }
 
-func (lc *lrucache) Remove(_ context.Context, kid string) error {
+func (lc *LRUCache) Remove(_ context.Context, kid string) error {
 	lc.cache.Remove(kid)
 	return nil
 }
 
-func (lc *lrucache) Contains(_ context.Context, kid string) (bool, error) {
+func (lc *LRUCache) Contains(_ context.Context, kid string) (bool, error) {
 	return lc.cache.Contains(kid), nil
 }
 
-func (lc *lrucache) Len(_ context.Context) (int, error) {
+func (lc *LRUCache) Len(_ context.Context) (int, error) {
 	return lc.cache.Len(), nil
 }
 
-func (lc *lrucache) Purge(_ context.Context) error {
+func (lc *LRUCache) Purge(_ context.Context) error {
 	lc.cache.Purge()
 	return nil
 }
