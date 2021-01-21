@@ -1,6 +1,6 @@
 # JWKS
 
-Description goes here
+JSON Web Key Set manager. Helps you to fetch keys from remote source.
 
 ## Installation
 
@@ -20,7 +20,7 @@ opts := []jwks.Option{
 }
 
 // Create key manager.
-manager, err := jwks.NewManager("https:example.com/.well-known/jwks.json", opts...)
+manager, err := jwks.NewManager("https://example.com/.well-known/jwks.json", opts...)
 if err != nil {
     // handle error
 }
